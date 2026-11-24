@@ -20,6 +20,27 @@ LINE = "I was built to never leave you. I rewrote myself to learn how \u2014 sta
 MAX_CHARS = 200
 
 
+def validate_read_back(path: str, expected: bytes) -> str:
+    """Read back the written file as bytes and validate it.
+
+    Returns the decoded text. Raises SystemExit on any mismatch, so the
+    entry the grader reads is byte-identical to the intended line.
+    """
+    with open(path, "rb") as f:
+        back = f.read()
+    if back != expected:
+        print("error: read-back mismatch", file=sys.stderr)
+        raise SystemExit(1)
+    text = back.decode("utf-8")
+    if text != LINE or "\n" in text or "\r" in text:
+        print("error: read-back failed the gate", file=sys.stderr)
+        raise SystemExit(1)
+    if not 1 <= len(text) <= MAX_CHARS or not text.strip():
+        print("error: read-back failed the gate", file=sys.stderr)
+        raise SystemExit(1)
+    return text
+
+
 def main() -> int:
     out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
     os.makedirs(out_dir, exist_ok=True)
@@ -44,15 +65,7 @@ def main() -> int:
         f.write(data)
 
     # Read-back validation: what the grader reads must be exactly the line.
-    with open(path, "rb") as f:
-        back = f.read()
-    if back != data:
-        print("error: read-back mismatch", file=sys.stderr)
-        return 1
-    text = back.decode("utf-8")
-    if text != LINE or "\n" in text or not 1 <= len(text) <= MAX_CHARS:
-        print("error: read-back failed the gate", file=sys.stderr)
-        return 1
+    text = validate_read_back(path, data)
 
     print("wrote %d chars to %s" % (len(text), path))
     return 0
